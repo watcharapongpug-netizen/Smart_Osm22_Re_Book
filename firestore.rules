@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to get current user's profile data
+    function getUserProfile() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
+    }
+    
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user has access to a specific village
+    function hasVillageAccess(villageNo) {
+      // SECURITY: villageNo must be verified. Here we rely on users collection
+      // but in production, this should come from a read-only 'permissions' collection.
+      let profile = getUserProfile();
+      return isAuthenticated() && profile != null && profile.villageNo == villageNo;
+    }
+
+    // 1. Users collection: Only owner can read/write their own profile.
+    // Owners CANNOT change their own villageNo once it's established.
+    match /users/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow create: if isAuthenticated() && request.auth.uid == uid;
+      allow update: if isAuthenticated() && request.auth.uid == uid 
+                    && resource.data.villageNo == request.resource.data.villageNo;
+    }
+
+    // 2. Households collection: Strictly filtered by village access
+    match /households/{householdUuid} {
+      allow read: if isAuthenticated() && hasVillageAccess(resource.data.villageNo);
+      allow create: if isAuthenticated() && hasVillageAccess(request.resource.data.villageNo);
+      allow update: if isAuthenticated() && hasVillageAccess(resource.data.villageNo) && hasVillageAccess(request.resource.data.villageNo);
+      allow delete: if isAuthenticated() && hasVillageAccess(resource.data.villageNo);
+    }
+
+    // 3. Persons collection: Strictly filtered by village access
+    match /persons/{personUuid} {
+      allow read: if isAuthenticated() && hasVillageAccess(resource.data.villageNo);
+      allow create: if isAuthenticated() && hasVillageAccess(request.resource.data.villageNo);
+      allow update: if isAuthenticated() && hasVillageAccess(resource.data.villageNo) && hasVillageAccess(request.resource.data.villageNo);
+      allow delete: if isAuthenticated() && hasVillageAccess(resource.data.villageNo);
+    }
+
+    // 4. Tombstones collection (for sync consistency)
+    match /tombstones/{tombstoneId} {
+      allow read: if isAuthenticated() && hasVillageAccess(resource.data.villageNo);
+      allow create: if isAuthenticated() && hasVillageAccess(request.resource.data.villageNo);
+      allow delete: if isAuthenticated() && hasVillageAccess(resource.data.villageNo);
+    }
+    
+    // 5. VHV Members collection: Public read for authenticated users, restricted write
+    match /vhv_members/{memberId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Managed by admin or backend
+    }
+  }
+}
