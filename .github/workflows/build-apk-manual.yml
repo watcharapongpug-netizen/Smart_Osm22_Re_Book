@@ -1,0 +1,57 @@
+name: Build APK (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: gradle
+
+      - name: Create .env file
+        run: |
+          cat > .env <<EOF
+          MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}
+          EOF
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build ${{ github.event.inputs.build_type }} APK
+        run: |
+          if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+            ./gradlew assembleRelease -x lint
+          else
+            ./gradlew assembleDebug -x lint
+          fi
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ github.event.inputs.build_type }}-apk
+          path: app/build/outputs/apk/${{ github.event.inputs.build_type }}/
+          retention-days: 30
+
+      - name: List APK files
+        run: |
+          echo "✅ Build completed successfully!"
+          ls -lah app/build/outputs/apk/${{ github.event.inputs.build_type }}/
