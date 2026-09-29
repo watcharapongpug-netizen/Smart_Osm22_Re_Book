@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "683299894311",
+    "project_id": "osm2-v2",
+    "storage_bucket": "osm2-v2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:683299894311:android:631cfcc8dd766f664e8a02",
+        "android_client_info": {
+          "package_name": "com.aistudio.populationreg.xqzr"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "683299894311-uth50jb1bp73gnljjc8scm73gu4v3htn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKuV5RF8QGUNDdyD3TYFctjvCPyBb0RFA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "683299894311-uth50jb1bp73gnljjc8scm73gu4v3htn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
