@@ -27,6 +27,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && request.auth.uid == uid;
       allow create: if isAuthenticated() && request.auth.uid == uid;
       allow update: if isAuthenticated() && request.auth.uid == uid 
+              && resource.data.villageNo == request.resource.data.villageNo;
                     && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['roleTitle']));
     }
 
