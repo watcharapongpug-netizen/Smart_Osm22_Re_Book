@@ -4,10 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.Person
 import com.example.data.PersonRepository
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -168,19 +165,43 @@ class PersonViewModel(
         }
     }
     
-    val allPersons: StateFlow<List<Person>> = repository.allPersons.stateIn(
+    private val _villageFilter = MutableStateFlow<String?>(null)
+    val villageFilter: StateFlow<String?> = _villageFilter
+
+    fun setVillageFilter(villageNo: String?) {
+        _villageFilter.value = villageNo
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val allPersons: StateFlow<List<Person>> = _villageFilter.flatMapLatest { village ->
+        if (village.isNullOrBlank()) {
+            // Fallback or empty if not filtered? 
+            // In a secure app, we should probably return empty if no village is set
+            kotlinx.coroutines.flow.flowOf(emptyList())
+        } else {
+            repository.getAllPersonsByVillage(village)
+        }
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
     
-    val allHouseholdsWithPersons: StateFlow<List<HouseholdWithPersons>> = repository.allHouseholdsWithPersons.stateIn(
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val allHouseholdsWithPersons: StateFlow<List<HouseholdWithPersons>> = _villageFilter.flatMapLatest { village ->
+        if (village.isNullOrBlank()) {
+            kotlinx.coroutines.flow.flowOf(emptyList())
+        } else {
+            repository.getAllHouseholdsWithPersonsByVillage(village)
+        }
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
 
-    val allHouseholds: StateFlow<List<Household>> = repository.allHouseholdsWithPersons
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val allHouseholds: StateFlow<List<Household>> = allHouseholdsWithPersons
         .map { list -> list.map { it.household } }
         .stateIn(
             scope = viewModelScope,
@@ -188,13 +209,21 @@ class PersonViewModel(
             initialValue = emptyList()
         )
 
-    val totalPersonsCount: StateFlow<Int> = repository.totalPersonsCount.stateIn(
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val totalPersonsCount: StateFlow<Int> = _villageFilter.flatMapLatest { village ->
+        if (village.isNullOrBlank()) kotlinx.coroutines.flow.flowOf(0)
+        else repository.getTotalPersonsCountByVillage(village)
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = 0
     )
 
-    val totalHouseholdsCount: StateFlow<Int> = repository.totalHouseholdsCount.stateIn(
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val totalHouseholdsCount: StateFlow<Int> = _villageFilter.flatMapLatest { village ->
+        if (village.isNullOrBlank()) kotlinx.coroutines.flow.flowOf(0)
+        else repository.getTotalHouseholdsCountByVillage(village)
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = 0
@@ -498,7 +527,11 @@ class PersonViewModel(
         summary
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    val houseSummary: StateFlow<List<HouseSummary>> = repository.houseSummary.stateIn(
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val houseSummary: StateFlow<List<HouseSummary>> = _villageFilter.flatMapLatest { village ->
+        if (village.isNullOrBlank()) kotlinx.coroutines.flow.flowOf(emptyList())
+        else repository.getHouseSummaryByVillage(village)
+    }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()

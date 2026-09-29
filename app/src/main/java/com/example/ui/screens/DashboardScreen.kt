@@ -52,6 +52,7 @@ import com.example.viewmodel.PersonViewModel
 @Composable
 fun DashboardScreen(
     viewModel: PersonViewModel,
+    authViewModel: com.example.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNavigateToHouseholds: () -> Unit = {},
     onNavigateToNewHousehold: () -> Unit = {},
     onNavigateToMap: () -> Unit = {},
@@ -69,6 +70,7 @@ fun DashboardScreen(
     val totalHouseholdsCount by viewModel.totalHouseholdsCount.collectAsStateWithLifecycle()
     val ageGroupSummary by viewModel.ageGroupSummary.collectAsStateWithLifecycle()
     val allScreenings by viewModel.allScreenings.collectAsStateWithLifecycle()
+    val userProfile by authViewModel.userProfile.collectAsStateWithLifecycle()
 
     var selectedStatsTab by remember { mutableStateOf(0) } // 0: Age, 1: NCDs, 2: Gender
     val isDark = isSystemInDarkTheme()
@@ -296,6 +298,7 @@ fun DashboardScreen(
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
+                            val userName = userProfile?.displayName ?: "ผู้สำรวจ"
                             Text(
                                 "SMART OSM",
                                 style = MaterialTheme.typography.titleMedium,
@@ -304,7 +307,7 @@ fun DashboardScreen(
                                 color = Color.White
                             )
                             Text(
-                                "ระบบสารสนเทศสุขภาพชุมชน",
+                                "สวัสดี, $userName",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.85f)
                             )

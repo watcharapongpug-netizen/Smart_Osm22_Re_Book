@@ -53,9 +53,11 @@ fun HouseholdFormScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     
+    val activeVillage by viewModel.villageFilter.collectAsState()
+    
     var houseNo by remember { mutableStateOf("") }
     var houseId by remember { mutableStateOf("") }
-    var villageNo by remember { mutableStateOf("") }
+    var villageNo by remember { mutableStateOf(activeVillage ?: "") }
     var villageName by remember { mutableStateOf("") }
     var subdistrict by remember { mutableStateOf("") }
     var district by remember { mutableStateOf("") }
@@ -95,6 +97,12 @@ fun HouseholdFormScreen(
     
     val locationPermissionState = rememberPermissionState(permission = Manifest.permission.ACCESS_FINE_LOCATION)
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+    LaunchedEffect(activeVillage, villageNo) {
+        if (villageName.isBlank() && !villageNo.isBlank()) {
+            villageName = villageOptions.find { it.first == villageNo }?.second ?: "หมู่ที่ $villageNo"
+        }
+    }
 
     LaunchedEffect(householdId) {
         if (householdId != -1L) {

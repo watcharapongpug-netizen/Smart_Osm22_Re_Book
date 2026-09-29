@@ -34,12 +34,12 @@ class PersonRepository(
         .build()
     private val personAdapter = moshi.adapter(Person::class.java)
 
-    val allPersons: Flow<List<Person>> = personDao.getAllPersons()
-    val allHouseholdsWithPersons: Flow<List<HouseholdWithPersons>> = householdDao.getHouseholdsWithPersons()
-    val houseSummary: Flow<List<HouseSummary>> = householdDao.getHouseSummary()
+    fun getAllPersonsByVillage(villageNo: String): Flow<List<Person>> = personDao.getPersonsByVillage(villageNo)
+    fun getAllHouseholdsWithPersonsByVillage(villageNo: String): Flow<List<HouseholdWithPersons>> = householdDao.getHouseholdsWithPersonsByVillage(villageNo)
+    fun getHouseSummaryByVillage(villageNo: String): Flow<List<HouseSummary>> = householdDao.getHouseSummaryByVillage(villageNo)
     
-    val totalPersonsCount: Flow<Int> = personDao.getTotalPersonsCount()
-    val totalHouseholdsCount: Flow<Int> = householdDao.getTotalHouseholdsCount()
+    fun getTotalPersonsCountByVillage(villageNo: String): Flow<Int> = personDao.getTotalPersonsCountByVillage(villageNo)
+    fun getTotalHouseholdsCountByVillage(villageNo: String): Flow<Int> = householdDao.getTotalHouseholdsCountByVillage(villageNo)
 
     fun getVhvMemberDao() = db.vhvMemberDao()
 

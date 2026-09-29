@@ -2,7 +2,7 @@
     <string name="app_name">ทะเบียนประชากร</string>
     <string name="user_profile_title">ข้อมูลโปรไฟล์ผู้ใช้งาน</string>
     <string name="user_identity_label">User Identity (Firebase Auth)</string>
-    <string name="default_web_client_id">807955777817-m34ve45b5a3rdmtd6fpf4s1hsaolh2l5.apps.googleusercontent.com</string>
+    <string name="default_web_client_id">683299894311-uth50jb1bp73gnljjc8scm73gu4v3htn.apps.googleusercontent.com</string>
     <string name="health_screening_title">ประวัติการคัดกรองสุขภาพ</string>
     <string name="add_screening">เพิ่มการคัดกรอง</string>
     <string name="no_screening_history">ไม่พบประวัติการคัดกรอง</string>

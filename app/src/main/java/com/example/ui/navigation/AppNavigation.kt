@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.DiagnosticScreen
 import com.example.ui.DiagnosticViewModel
@@ -48,6 +49,21 @@ fun AppNavigation(
     authViewModel: com.example.viewmodel.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     modifier: Modifier = Modifier
 ) {
+    val userProfile by authViewModel.userProfile.collectAsStateWithLifecycle()
+    
+    androidx.compose.runtime.LaunchedEffect(userProfile) {
+        viewModel.setVillageFilter(userProfile?.villageNo)
+        if (userProfile == null) {
+            // If we are not on splash or login, and user logs out, go to login
+            val currentRoute = navController.currentDestination?.route
+            if (currentRoute != "splash" && currentRoute != "login" && currentRoute != "vhv_registration") {
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
+
     val items = listOf(
         BottomNavItem.Dashboard,
         BottomNavItem.Households,
@@ -184,6 +200,7 @@ fun AppNavigation(
             composable(BottomNavItem.Dashboard.route) {
                 DashboardScreen(
                     viewModel = viewModel,
+                    authViewModel = authViewModel,
                     onNavigateToHouseholds = {
                         navController.navigate(BottomNavItem.Households.route)
                     },

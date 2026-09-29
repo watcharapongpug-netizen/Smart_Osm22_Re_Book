@@ -45,14 +45,14 @@ interface HouseholdDao {
     fun searchHouseholds(query: String): Flow<List<Household>>
 
     @Transaction
-    @Query("SELECT * FROM households ORDER BY houseNo ASC")
-    fun getHouseholdsWithPersons(): Flow<List<HouseholdWithPersons>>
+    @Query("SELECT * FROM households WHERE villageNo = :villageNo ORDER BY houseNo ASC")
+    fun getHouseholdsWithPersonsByVillage(villageNo: String): Flow<List<HouseholdWithPersons>>
 
     @Query("SELECT * FROM households ORDER BY houseNo ASC")
     suspend fun getAllHouseholds(): List<Household>
 
-    @Query("SELECT COUNT(*) FROM households")
-    fun getTotalHouseholdsCount(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM households WHERE villageNo = :villageNo")
+    fun getTotalHouseholdsCountByVillage(villageNo: String): Flow<Int>
 
     @Transaction
     @Query("SELECT * FROM households WHERE id = :householdId LIMIT 1")
@@ -75,8 +75,9 @@ interface HouseholdDao {
         (SELECT fullName FROM persons WHERE householdId = h.id AND houseStatus = 'HEAD' LIMIT 1) as headName
         FROM households h
         LEFT JOIN persons p ON h.id = p.householdId
+        WHERE h.villageNo = :villageNo
         GROUP BY h.id, h.houseNo, h.villageNo, h.latitude, h.longitude, h.dataStatus
         ORDER BY h.houseNo ASC
     """)
-    fun getHouseSummary(): Flow<List<HouseSummary>>
+    fun getHouseSummaryByVillage(villageNo: String): Flow<List<HouseSummary>>
 }

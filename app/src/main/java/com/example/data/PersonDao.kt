@@ -16,8 +16,8 @@ interface PersonDao {
     @Query("SELECT * FROM persons ORDER BY id ASC")
     suspend fun getAllPersonsList(): List<Person>
 
-    @Query("SELECT COUNT(*) FROM persons")
-    fun getTotalPersonsCount(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM persons p INNER JOIN households h ON p.householdId = h.id WHERE h.villageNo = :villageNo")
+    fun getTotalPersonsCountByVillage(villageNo: String): Flow<Int>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertPerson(person: Person): Long
