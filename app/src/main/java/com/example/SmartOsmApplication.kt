@@ -19,20 +19,6 @@ class SmartOsmApplication : Application() {
             }
             FirestoreManager.initialize(this)
             
-            // Ensure Firebase Auth session is active for Firestore security rules
-            try {
-                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                if (auth.currentUser == null) {
-                    auth.signInAnonymously().addOnSuccessListener {
-                        Log.i("SmartOsmApp", "Firebase anonymous auth initialized: ${it.user?.uid}")
-                    }.addOnFailureListener {
-                        Log.d("SmartOsmApp", "Firebase anonymous auth note: ${it.message}")
-                    }
-                }
-            } catch (authEx: Exception) {
-                Log.d("SmartOsmApp", "FirebaseAuth init note: ${authEx.message}")
-            }
-            
             Log.i("SmartOsmApp", "Firebase and Firestore successfully initialized")
         } catch (e: Exception) {
             Log.w("SmartOsmApp", "Firebase initialization deferred: ${e.message}")
