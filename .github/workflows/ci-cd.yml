@@ -1,4 +1,4 @@
-name: Build APK
+name: CI/CD Build & Test
 
 on:
   push:
@@ -19,13 +19,20 @@ on:
         options:
           - debug
           - release
+      build_bundle:
+        description: 'Build Android App Bundle (.aab) instead of APK'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   build:
-    name: Build APK
+    name: Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -51,16 +58,17 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      # Create .env with safe defaults for CI builds
-      # This prevents empty placeholder issues in Manifest or Secrets plugin
-      - name: Create .env file for CI
+      # Create secrets.properties with safe defaults for CI builds
+      # This matches the configuration in app/build.gradle.kts
+      - name: Create secrets.properties for CI
         run: |
-          cat > .env << 'EOF'
+          cat > secrets.properties << 'EOF'
           # CI Build Environment Configuration
           MAPS_API_KEY=placeholder_maps_api_key_ci_build
+          GEMINI_API_KEY=placeholder_gemini_api_key_ci_build
           FIREBASE_APPCHECK_DEBUG_TOKEN=placeholder_token
           EOF
-          echo "✓ Created .env with CI-safe defaults"
+          echo "✓ Created secrets.properties with CI-safe defaults"
 
       # Setup debug keystore: decode from base64 if available, or generate if missing
       - name: Setup debug keystore
@@ -87,11 +95,13 @@ jobs:
             echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks
             echo "KEYSTORE_PATH=${{ github.workspace }}/my-upload-key.jks" >> $GITHUB_ENV
             echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
             echo "✓ Decoded release keystore from secrets"
           elif [ -n "${{ secrets.KEYSTORE_PATH }}" ]; then
             echo "KEYSTORE_PATH=${{ secrets.KEYSTORE_PATH }}" >> $GITHUB_ENV
             echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
             echo "✓ Using KEYSTORE_PATH from secrets"
           elif [ ! -f "my-upload-key.jks" ]; then
@@ -107,48 +117,38 @@ jobs:
             echo "✓ Generated fallback release keystore"
           fi
 
-      # Run unit tests before assembling APK
+      # Run unit tests before assembling artifacts
       - name: Run Unit Tests
         run: |
           echo "Running unit tests..."
           gradle testDebugUnitTest --stacktrace --no-daemon
-        env:
-          MAPS_API_KEY: placeholder_maps_api_key_ci_build
         continue-on-error: true
 
-      - name: Build Debug APK
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'debug'
+      # Build Artifacts
+      - name: Build Artifacts
         run: |
-          echo "Building Debug APK..."
-          gradle assembleDebug --stacktrace --no-daemon
-        env:
-          MAPS_API_KEY: placeholder_maps_api_key_ci_build
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          BUILD_BUNDLE="${{ github.event.inputs.build_bundle || 'false' }}"
+          
+          if [ "$BUILD_BUNDLE" = "true" ]; then
+            TASK="bundle${BUILD_TYPE^}"
+            echo "Building $BUILD_TYPE App Bundle..."
+          else
+            TASK="assemble${BUILD_TYPE^}"
+            echo "Building $BUILD_TYPE APK..."
+          fi
+          
+          gradle $TASK --stacktrace --no-daemon
 
-      - name: Build Release APK
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release'
-        run: |
-          echo "Building Release APK..."
-          gradle assembleRelease --stacktrace --no-daemon
-        env:
-          MAPS_API_KEY: placeholder_maps_api_key_ci_build
-
-      - name: Upload Debug APK
-        if: (github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'debug') && success()
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: ${{ github.event.inputs.build_bundle == 'true' && 'android-bundle' || 'android-apk' }}-${{ github.event.inputs.build_type || 'debug' }}
+          path: |
+            app/build/outputs/apk/**/*.apk
+            app/build/outputs/bundle/**/*.aab
           retention-days: 30
-          if-no-files-found: warn
-
-      - name: Upload Release APK
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release' && success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: app/build/outputs/apk/release/*.apk
-          retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload Test Results
         if: always()
@@ -161,7 +161,24 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Print Build Status
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const status = "${{ job.status }}";
+            const icon = status === "success" ? "✅" : "❌";
+            const body = `${icon} **Build & Test ${status}!**\n\nDownload artifacts from the [Actions tab](${context.payload.pull_request.html_url}/checks).`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Print Build Summary
         if: always()
         run: |
           echo "Build Status: ${{ job.status }}"
