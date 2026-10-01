@@ -32,6 +32,10 @@ class AuthViewModel(
     val userProfile: StateFlow<UserProfile?> = authManager.userProfile
     val activeMembership: StateFlow<com.example.data.membership.UserMembership?> = authManager.activeMembership
 
+    fun hasPermission(permission: com.example.data.membership.AreaPermission): Boolean {
+        return authManager.activeMembership.value?.hasPermission(permission) ?: false
+    }
+
     val currentUid: String?
         get() = authManager.currentUid
 

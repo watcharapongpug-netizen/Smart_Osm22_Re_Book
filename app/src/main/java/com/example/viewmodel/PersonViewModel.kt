@@ -92,6 +92,7 @@ class PersonViewModel(
     }
 
     fun importWorkspaceExcelFile(fileName: String = "ทะเบียนประชากร_หมู่8_รายงานสรุป-1.xlsx", onComplete: (Boolean, String) -> Unit) {
+        val currentVillage = _villageFilter.value
         viewModelScope.launch(Dispatchers.IO) {
             _isImporting.value = true
             try {
@@ -119,7 +120,7 @@ class PersonViewModel(
                 }
 
                 val inputStream = file.inputStream()
-                val plan = excelImportUseCase.createImportPlan(inputStream)
+                val plan = excelImportUseCase.createImportPlan(inputStream, currentVillage)
                 _importPlan.value = plan
                 withContext(Dispatchers.Main) {
                     _isImporting.value = false
@@ -404,10 +405,20 @@ class PersonViewModel(
         context: Context,
         onComplete: (Boolean, Uri?, String) -> Unit
     ) {
+        val currentVillage = _villageFilter.value
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val households = repository.getAllHouseholds().associateBy { it.id }
-                val persons = repository.getAllPersonsList()
+                val households = if (currentVillage.isNullOrBlank()) {
+                    repository.getAllHouseholds()
+                } else {
+                    repository.getAllHouseholdsByVillage(currentVillage)
+                }.associateBy { it.id }
+                
+                val persons = if (currentVillage.isNullOrBlank()) {
+                    repository.getAllPersonsList()
+                } else {
+                    repository.getAllPersonsByVillageList(currentVillage)
+                }
 
                 val exportDir = java.io.File(context.cacheDir, "exports")
                 if (!exportDir.exists()) exportDir.mkdirs()
@@ -570,6 +581,7 @@ class PersonViewModel(
 
     fun importExcelData(context: Context, uri: Uri) {
         if (_isImporting.value) return
+        val currentVillage = _villageFilter.value
         
         viewModelScope.launch(Dispatchers.IO) {
             _isImporting.value = true
@@ -577,7 +589,7 @@ class PersonViewModel(
             try {
                 inputStream = context.contentResolver.openInputStream(uri)
                 if (inputStream != null) {
-                    val plan = excelImportUseCase.createImportPlan(inputStream)
+                    val plan = excelImportUseCase.createImportPlan(inputStream, currentVillage)
                     _importPlan.value = plan
                 } else {
                     withContext(Dispatchers.Main) {
@@ -605,13 +617,14 @@ class PersonViewModel(
         onComplete: (Boolean, String) -> Unit
     ) {
         if (_isImporting.value) return
+        val currentVillage = _villageFilter.value
         viewModelScope.launch {
             _isImporting.value = true
             try {
                 val result = googleSheetsService.downloadSpreadsheetAsXlsx(spreadsheetId, accessToken)
                 if (result.isSuccess) {
                     val inputStream = result.getOrThrow()
-                    val plan = excelImportUseCase.createImportPlan(inputStream)
+                    val plan = excelImportUseCase.createImportPlan(inputStream, currentVillage)
                     _importPlan.value = plan
                     onComplete(true, "สร้างแผนการนำเข้าจาก Google Sheets สำเร็จ (${plan.plannedItems.size} รายการ)")
                 } else {
@@ -629,6 +642,7 @@ class PersonViewModel(
     }
 
     fun exportExcelData(context: Context, uri: Uri, onComplete: (Boolean, String) -> Unit) {
+        val currentVillage = _villageFilter.value
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val workbook = org.apache.poi.xssf.usermodel.XSSFWorkbook()
@@ -640,8 +654,17 @@ class PersonViewModel(
                     hRow.createCell(idx).setCellValue(title)
                 }
 
-                val households = repository.getAllHouseholds().associateBy { it.id }
-                val persons = repository.getAllPersonsList()
+                val households = if (currentVillage.isNullOrBlank()) {
+                    repository.getAllHouseholds()
+                } else {
+                    repository.getAllHouseholdsByVillage(currentVillage)
+                }.associateBy { it.id }
+
+                val persons = if (currentVillage.isNullOrBlank()) {
+                    repository.getAllPersonsList()
+                } else {
+                    repository.getAllPersonsByVillageList(currentVillage)
+                }
 
                 persons.forEachIndexed { index, p ->
                     val row = sheet.createRow(index + 1)
@@ -690,6 +713,7 @@ class PersonViewModel(
         context: Context,
         onComplete: (Boolean, Uri?, String) -> Unit
     ) {
+        val currentVillage = _villageFilter.value
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val workbook = org.apache.poi.xssf.usermodel.XSSFWorkbook()
@@ -701,8 +725,17 @@ class PersonViewModel(
                     hRow.createCell(idx).setCellValue(title)
                 }
 
-                val households = repository.getAllHouseholds().associateBy { it.id }
-                val persons = repository.getAllPersonsList()
+                val households = if (currentVillage.isNullOrBlank()) {
+                    repository.getAllHouseholds()
+                } else {
+                    repository.getAllHouseholdsByVillage(currentVillage)
+                }.associateBy { it.id }
+
+                val persons = if (currentVillage.isNullOrBlank()) {
+                    repository.getAllPersonsList()
+                } else {
+                    repository.getAllPersonsByVillageList(currentVillage)
+                }
 
                 persons.forEachIndexed { index, p ->
                     val row = sheet.createRow(index + 1)

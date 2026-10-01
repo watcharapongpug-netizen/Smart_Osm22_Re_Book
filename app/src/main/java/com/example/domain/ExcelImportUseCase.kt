@@ -25,7 +25,10 @@ import java.util.UUID
 class ExcelImportUseCase(
     private val database: AppDatabase
 ) {
-    suspend fun createImportPlan(inputStream: InputStream): ImportPlan {
+    suspend fun createImportPlan(
+        inputStream: InputStream,
+        targetVillageNo: String? = null
+    ): ImportPlan {
         val errors = mutableListOf<ImportError>()
         val plannedItems = mutableListOf<PlannedPersonImport>()
         var totalRows = 0
@@ -33,13 +36,24 @@ class ExcelImportUseCase(
         val householdDao = database.householdDao()
         val personDao = database.personDao()
 
-        val existingHouseholds = householdDao.getAllHouseholds()
+        val existingHouseholds = if (targetVillageNo.isNullOrBlank()) {
+            householdDao.getAllHouseholds()
+        } else {
+            householdDao.getHouseholdsByVillageNoList(targetVillageNo)
+        }
+        
         val householdsByUuid = existingHouseholds.associateBy { it.householdUuid }
         val householdsGroupedByAddress = existingHouseholds.groupBy { h ->
             buildAddressKey(h.houseNo, h.villageNo, h.subdistrict, h.district, h.province)
         }
 
-        val existingPersons = personDao.getAllPersonsList()
+        val existingPersons = if (targetVillageNo.isNullOrBlank()) {
+            personDao.getAllPersonsList()
+        } else {
+            val houseIds = existingHouseholds.map { it.id }.toSet()
+            personDao.getAllPersonsList().filter { it.householdId in houseIds }
+        }
+
         val personsByUuid = existingPersons.associateBy { it.personUuid }
         val personsByNationalId = existingPersons.filter { !it.nationalId.isNullOrBlank() }.associateBy { it.nationalId!! }
 
@@ -112,6 +126,12 @@ class ExcelImportUseCase(
 
                 if (houseNo.isBlank()) {
                     errors.add(ImportError(rowNum, "ไม่มีข้อมูลบ้านเลขที่"))
+                    continue
+                }
+
+                // Regional Partitioning Enforcement: Block cross-village imports
+                if (!targetVillageNo.isNullOrBlank() && villageNo.isNotBlank() && villageNo != targetVillageNo) {
+                    errors.add(ImportError(rowNum, "ไม่สามารถนำเข้าข้อมูลข้ามหมู่บ้านได้ (ข้อมูลในไฟล์คือหมู่ $villageNo แต่คุณรับผิดชอบหมู่ $targetVillageNo)"))
                     continue
                 }
 

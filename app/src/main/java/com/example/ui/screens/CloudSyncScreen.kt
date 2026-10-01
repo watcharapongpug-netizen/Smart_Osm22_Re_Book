@@ -267,161 +267,165 @@ fun CloudSyncScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Section 2: Cloud Firestore Database Sync
-            Text(
-                text = "2. การซิงค์ฐานข้อมูลแบบเรียลไทม์ (Google Cloud Firestore)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = EmeraldPrimary
-            )
+            if (authViewModel?.hasPermission(com.example.data.membership.AreaPermission.SYNC_CLOUD) == true) {
+                Text(
+                    text = "2. การซิงค์ฐานข้อมูลแบบเรียลไทม์ (Google Cloud Firestore)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = EmeraldPrimary
+                )
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Text(
-                        text = "เชื่อมต่อและสำรองข้อมูลขึ้นระบบ Google Cloud Firestore เพื่อความปลอดภัย ป้องกันข้อมูลสูญหาย และซิงค์ระหว่างอุปกรณ์",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // Push to Cloud Button
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.syncToFirestore { result ->
-                                isError = result.isFailure
-                                actionMessage = if (result.isSuccess) "อัปโหลดข้อมูลขึ้น Cloud สำเร็จ" else "อัปโหลดไม่สำเร็จ: ${result.exceptionOrNull()?.message}"
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = EmeraldPrimary)
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(Icons.Filled.CloudUpload, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("สำรองข้อมูลขึ้นคลาวด์ (Push to Cloud)", fontWeight = FontWeight.Bold)
-                    }
+                        Text(
+                            text = "เชื่อมต่อและสำรองข้อมูลขึ้นระบบ Google Cloud Firestore เพื่อความปลอดภัย ป้องกันข้อมูลสูญหาย และซิงค์ระหว่างอุปกรณ์",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                    // Pull from Cloud Button
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.syncFromFirestore { result ->
-                                isError = result.isFailure
-                                actionMessage = if (result.isSuccess) "ดึงข้อมูลจาก Cloud สำเร็จ" else "ดึงข้อมูลไม่สำเร็จ: ${result.exceptionOrNull()?.message}"
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = EmeraldPrimary)
-                    ) {
-                        Icon(Icons.Filled.CloudDownload, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("กู้คืนข้อมูลจากคลาวด์ (Pull from Cloud)", fontWeight = FontWeight.Bold)
-                    }
-
-                    // Bidirectional Sync Button
-                    Button(
-                        onClick = {
-                            viewModel.bidirectionalSync { result ->
-                                isError = result.isFailure
-                                actionMessage = if (result.isSuccess) "ซิงค์ 2 ทาง (Bidirectional) สำเร็จ" else "ซิงค์ไม่สำเร็จ: ${result.exceptionOrNull()?.message}"
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MintAccent)
-                    ) {
-                        Icon(Icons.Filled.Sync, contentDescription = null, tint = Color.Black)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("ซิงค์แบบ 2 ทาง (Bidirectional Sync)", fontWeight = FontWeight.Bold, color = Color.Black)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Section 3: Google Sheets Sync & Import
-            Text(
-                text = "3. การนำเข้าและวิเคราะห์ข้อมูลผ่าน Google Sheets (Google Sheets Integration)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = EmeraldPrimary
-            )
-
-            var spreadsheetInput by remember { mutableStateOf("") }
-            var tokenInput by remember { mutableStateOf("") }
-            val isImporting by viewModel.isImporting.collectAsStateWithLifecycle()
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Text(
-                        text = "กรอก Spreadsheet URL หรือ Spreadsheet ID เพื่อนำข้อมูลเข้าสู่ระบบวิเคราะห์ประเมินความถูกต้อง (Validation Plan) ก่อนนำเขียนลงหน่วยความจำจริง",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedTextField(
-                        value = spreadsheetInput,
-                        onValueChange = { spreadsheetInput = it },
-                        label = { Text("Google Spreadsheet URL หรือ ID") },
-                        placeholder = { Text("https://docs.google.com/spreadsheets/d/...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Filled.GridOn, contentDescription = null, tint = EmeraldPrimary) }
-                    )
-
-                    OutlinedTextField(
-                        value = tokenInput,
-                        onValueChange = { tokenInput = it },
-                        label = { Text("OAuth Access Token (หากไฟล์ไม่ได้เปิดเผยต่อสาธารณะ / Optional)") },
-                        placeholder = { Text("ya29.a0Ac...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Filled.VpnKey, contentDescription = null, tint = EmeraldPrimary) }
-                    )
-
-                    Button(
-                        onClick = {
-                            if (spreadsheetInput.isBlank()) {
-                                isError = true
-                                actionMessage = "กรุณากรอก Spreadsheet URL หรือ ID"
-                                return@Button
-                            }
-                            viewModel.loadGoogleSheetsImportPlan(
-                                context = context,
-                                spreadsheetId = spreadsheetInput,
-                                accessToken = tokenInput.takeIf { it.isNotBlank() }
-                            ) { success, message ->
-                                isError = !success
-                                actionMessage = message
-                            }
-                        },
-                        enabled = !isImporting,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
-                    ) {
-                        if (isImporting) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
+                        // Push to Cloud Button
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.syncToFirestore { result ->
+                                    isError = result.isFailure
+                                    actionMessage = if (result.isSuccess) "อัปโหลดข้อมูลขึ้น Cloud สำเร็จ" else "อัปโหลดไม่สำเร็จ: ${result.exceptionOrNull()?.message}"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = EmeraldPrimary)
+                        ) {
+                            Icon(Icons.Filled.CloudUpload, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("กำลังดาวน์โหลดและตรวจทานข้อมูล...", fontWeight = FontWeight.Bold)
-                        } else {
+                            Text("สำรองข้อมูลขึ้นคลาวด์ (Push to Cloud)", fontWeight = FontWeight.Bold)
+                        }
+
+                        // Pull from Cloud Button
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.syncFromFirestore { result ->
+                                    isError = result.isFailure
+                                    actionMessage = if (result.isSuccess) "ดึงข้อมูลจาก Cloud สำเร็จ" else "ดึงข้อมูลไม่สำเร็จ: ${result.exceptionOrNull()?.message}"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = EmeraldPrimary)
+                        ) {
                             Icon(Icons.Filled.CloudDownload, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("นำเข้าและเปิดแผนตรวจสอบความถูกต้อง", fontWeight = FontWeight.Bold)
+                            Text("กู้คืนข้อมูลจากคลาวด์ (Pull from Cloud)", fontWeight = FontWeight.Bold)
+                        }
+
+                        // Bidirectional Sync Button
+                        Button(
+                            onClick = {
+                                viewModel.bidirectionalSync { result ->
+                                    isError = result.isFailure
+                                    actionMessage = if (result.isSuccess) "ซิงค์ 2 ทาง (Bidirectional) สำเร็จ" else "ซิงค์ไม่สำเร็จ: ${result.exceptionOrNull()?.message}"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MintAccent)
+                        ) {
+                            Icon(Icons.Filled.Sync, contentDescription = null, tint = Color.Black)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("ซิงค์แบบ 2 ทาง (Bidirectional Sync)", fontWeight = FontWeight.Bold, color = Color.Black)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Section 3: Google Sheets Sync & Import
+            if (authViewModel?.hasPermission(com.example.data.membership.AreaPermission.IMPORT_EXPORT) == true) {
+                Text(
+                    text = "3. การนำเข้าและวิเคราะห์ข้อมูลผ่าน Google Sheets (Google Sheets Integration)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = EmeraldPrimary
+                )
+
+                var spreadsheetInput by remember { mutableStateOf("") }
+                var tokenInput by remember { mutableStateOf("") }
+                val isImporting by viewModel.isImporting.collectAsStateWithLifecycle()
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = "กรอก Spreadsheet URL หรือ Spreadsheet ID เพื่อนำข้อมูลเข้าสู่ระบบวิเคราะห์ประเมินความถูกต้อง (Validation Plan) ก่อนนำเขียนลงหน่วยความจำจริง",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        OutlinedTextField(
+                            value = spreadsheetInput,
+                            onValueChange = { spreadsheetInput = it },
+                            label = { Text("Google Spreadsheet URL หรือ ID") },
+                            placeholder = { Text("https://docs.google.com/spreadsheets/d/...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Filled.GridOn, contentDescription = null, tint = EmeraldPrimary) }
+                        )
+
+                        OutlinedTextField(
+                            value = tokenInput,
+                            onValueChange = { tokenInput = it },
+                            label = { Text("OAuth Access Token (หากไฟล์ไม่ได้เปิดเผยต่อสาธารณะ / Optional)") },
+                            placeholder = { Text("ya29.a0Ac...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Filled.VpnKey, contentDescription = null, tint = EmeraldPrimary) }
+                        )
+
+                        Button(
+                            onClick = {
+                                if (spreadsheetInput.isBlank()) {
+                                    isError = true
+                                    actionMessage = "กรุณากรอก Spreadsheet URL หรือ ID"
+                                    return@Button
+                                }
+                                viewModel.loadGoogleSheetsImportPlan(
+                                    context = context,
+                                    spreadsheetId = spreadsheetInput,
+                                    accessToken = tokenInput.takeIf { it.isNotBlank() }
+                                ) { success, message ->
+                                    isError = !success
+                                    actionMessage = message
+                                }
+                            },
+                            enabled = !isImporting,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
+                        ) {
+                            if (isImporting) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("กำลังดาวน์โหลดและตรวจทานข้อมูล...", fontWeight = FontWeight.Bold)
+                            } else {
+                                Icon(Icons.Filled.CloudDownload, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("นำเข้าและเปิดแผนตรวจสอบความถูกต้อง", fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }

@@ -58,6 +58,9 @@ interface PersonDao {
     @Query("SELECT p.* FROM persons p INNER JOIN households h ON p.householdId = h.id WHERE h.villageNo = :villageNo ORDER BY p.fullName ASC")
     fun getPersonsByVillage(villageNo: String): Flow<List<Person>>
 
+    @Query("SELECT p.* FROM persons p INNER JOIN households h ON p.householdId = h.id WHERE h.villageNo = :villageNo ORDER BY p.fullName ASC")
+    suspend fun getPersonsByVillageList(villageNo: String): List<Person>
+
     @Query("SELECT COUNT(*) FROM persons WHERE personStatus = :status")
     fun getPersonsCountByStatus(status: PersonStatus): Flow<Int>
 

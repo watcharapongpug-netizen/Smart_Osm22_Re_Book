@@ -210,6 +210,9 @@ class PersonRepository(
     suspend fun getAllHouseholds(): List<Household> = householdDao.getAllHouseholds()
     suspend fun getAllPersonsList(): List<Person> = personDao.getAllPersonsList()
 
+    suspend fun getAllHouseholdsByVillage(villageNo: String): List<Household> = householdDao.getHouseholdsByVillageNoList(villageNo)
+    suspend fun getAllPersonsByVillageList(villageNo: String): List<Person> = personDao.getPersonsByVillageList(villageNo)
+
     fun searchPersons(query: String): Flow<List<Person>> = personDao.searchPersons(query)
     fun getPersonsByVillage(villageNo: String): Flow<List<Person>> = personDao.getPersonsByVillage(villageNo)
     fun getHouseholdsByVillageNo(villageNo: String): Flow<List<Household>> = householdDao.getHouseholdsByVillageNo(villageNo)
